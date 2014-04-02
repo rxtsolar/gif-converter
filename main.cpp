@@ -47,10 +47,9 @@ public:
             cerr << "EGifOpenFileName failed: " << GifErrorString(gif->Error) << endl;
             exit(1);
         }
-		GifPixelType* data;
 
 		EGifSetGifVersion(gif, true);
-		ret = EGifPutScreenDesc(gif, image.cols, image.rows, 0, 0, colorMap);
+		ret = EGifPutScreenDesc(gif, image.cols, image.rows, colorMap->BitsPerPixel, 0, colorMap);
         if (ret == GIF_ERROR) {
             cerr << "EGifPutScreenDesc failed: " << GifErrorString(gif->Error) << endl;
             exit(1);
@@ -60,14 +59,8 @@ public:
             cerr << "EGifPutImageDesc failed: " << GifErrorString(gif->Error) << endl;
             exit(1);
         }
-		data = new GifPixelType[image.cols * image.rows];
-        if (!data) {
-            cerr << "not enough memory" << endl;
-            exit(1);
-        }
-		memcpy(data, image.data, image.cols * image.rows * sizeof(GifPixelType));
 
-		EGifPutLine(gif, data, image.rows * image.cols);
+		EGifPutLine(gif, image.data, image.rows * image.cols);
 		EGifCloseFile(gif);
 	}
 private:
