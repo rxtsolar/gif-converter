@@ -49,6 +49,21 @@ public:
             exit(1);
         }
 
+        GraphicsControlBlock controlBlock;
+        GifByteType buf[4];
+
+        controlBlock.TransparentColor = NO_TRANSPARENT_COLOR;
+        controlBlock.DisposalMode = 1;
+        controlBlock.UserInputFlag = false;
+        controlBlock.DelayTime = 40;
+
+        EGifGCBToExtension(&controlBlock, buf);
+        ret = EGifPutExtension(gif, GRAPHICS_EXT_FUNC_CODE, 4, buf);
+        if (ret == GIF_ERROR) {
+            cerr << "EGifPutExtension failed: " << GifErrorString(gif->Error) << endl;
+            exit(1);
+        }
+
         ret = EGifPutImageDesc(gif, 0, 0, image.cols, image.rows, false, 0);
         if (ret == GIF_ERROR) {
             cerr << "EGifPutImageDesc failed: " << GifErrorString(gif->Error) << endl;
