@@ -10,6 +10,7 @@ public:
     GifConverter(const char* fileName)
     {
         image = imread(fileName, 1);
+        image2 = imread("aaa_705.rnd.png", 1);
     }
     void showImage(void)
     {
@@ -39,7 +40,7 @@ public:
             exit(1);
         }
 
-        getColorMap(output, colorMap);
+        getColorMap(output, colorMap, image);
 
         EGifSetGifVersion(gif, true);
 
@@ -48,6 +49,12 @@ public:
             cerr << "EGifPutScreenDesc failed: " << GifErrorString(gif->Error) << endl;
             exit(1);
         }
+
+        unsigned char param[3] = {1, 0, 0};
+        EGifPutExtensionLeader(gif, APPLICATION_EXT_FUNC_CODE);
+        EGifPutExtensionBlock(gif, 11, "NETSCAPE2.0");
+        EGifPutExtensionBlock(gif, 3, param);
+        EGifPutExtensionTrailer(gif);
 
         GraphicsControlBlock controlBlock;
         GifByteType buf[4];
@@ -72,34 +79,51 @@ public:
 
         EGifPutLine(gif, output, image.rows * image.cols);
 
+        ret = EGifPutExtension(gif, GRAPHICS_EXT_FUNC_CODE, 4, buf);
+        if (ret == GIF_ERROR) {
+            cerr << "EGifPutExtension failed: " << GifErrorString(gif->Error) << endl;
+            exit(1);
+        }
+
+        ret = EGifPutImageDesc(gif, 0, 0, image.cols, image.rows, false, 0);
+        if (ret == GIF_ERROR) {
+            cerr << "EGifPutImageDesc failed: " << GifErrorString(gif->Error) << endl;
+            exit(1);
+        }
+
+        getColorMap(output, colorMap, image2);
+
+        EGifPutLine(gif, output, image.rows * image.cols);
+
         delete[] output;
 
         EGifCloseFile(gif);
     }
 private:
     Mat image;
+    Mat image2;
 
-    void getColorMap(GifByteType* outputBuffer, ColorMapObject* colorMap)
+    void getColorMap(GifByteType* outputBuffer, ColorMapObject* colorMap, Mat& img)
     {
         int ret;
-        int size = image.rows * image.cols;
+        int size = img.rows * img.cols;
         int colorMapSize = 256;
         GifByteType* b = new GifByteType[size];
         GifByteType* g = new GifByteType[size];
         GifByteType* r = new GifByteType[size];
 
-        if (image.channels() != 3) {
-            cerr << "image channels are " << image.channels() << endl;
+        if (img.channels() != 3) {
+            cerr << "img channels are " << img.channels() << endl;
             exit(1);
         }
 
         for (int i = 0; i < size; i++) {
-            b[i] = image.data[3 * i];
-            g[i] = image.data[3 * i + 1];
-            r[i] = image.data[3 * i + 2];
+            b[i] = img.data[3 * i];
+            g[i] = img.data[3 * i + 1];
+            r[i] = img.data[3 * i + 2];
         }
 
-        ret = GifQuantizeBuffer(image.cols, image.rows, &colorMapSize, r, g, b, outputBuffer, colorMap->Colors);
+        ret = GifQuantizeBuffer(img.cols, img.rows, &colorMapSize, r, g, b, outputBuffer, colorMap->Colors);
         if (ret == GIF_ERROR) {
             cerr << "GifQuantizeBuffer failed" << endl;
             exit(1);
