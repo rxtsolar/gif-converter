@@ -7,18 +7,36 @@ using namespace cv;
 
 class GifConverter {
 public:
-    GifConverter(const char* fileName)
+    GifConverter(void)
     {
-        image = imread(fileName, 1);
-        image2 = imread("aaa_705.rnd.png", 1);
+        width = 0;
+        height = 0;
     }
+
     void showImage(void)
     {
         namedWindow("Test");
-        imshow("Test", image);
-        waitKey(0);
+        for (size_t i = 0; i < images.size(); i++) {
+            imshow("Test", images[i]);
+            waitKey(0);
+        }
         destroyWindow("Test");
     }
+
+    void addImage(const char* fileName)
+    {
+        Mat image = imread(fileName, 1);
+        if (width == 0 && height == 0) {
+            width = image.cols;
+            height = image.rows;
+        }
+        if (width != image.cols || height != image.rows) {
+            cerr << "Images size are different" << endl;
+            exit(1);
+        }
+        images.push_back(image);
+    }
+
     void writeGif(const char* fileName)
     {
         int ret;
@@ -28,7 +46,7 @@ public:
             exit(1);
         }
 
-        GifByteType* output = new GifByteType[image.rows * image.cols];
+        GifByteType* output = new GifByteType[width * height * images.size()];
         if (!output) {
             cerr << "Allocating output buffer failed: Not enough memory" << endl;
             exit(0);
@@ -40,90 +58,74 @@ public:
             exit(1);
         }
 
-        getColorMap(output, colorMap, image);
+        getColorMap(output, colorMap);
 
         EGifSetGifVersion(gif, true);
 
-        ret = EGifPutScreenDesc(gif, image.cols, image.rows, colorMap->BitsPerPixel, 0, colorMap);
+        ret = EGifPutScreenDesc(gif, width, height, colorMap->BitsPerPixel, 0, colorMap);
         if (ret == GIF_ERROR) {
             cerr << "EGifPutScreenDesc failed: " << GifErrorString(gif->Error) << endl;
             exit(1);
         }
 
         unsigned char param[3] = {1, 0, 0};
+        GraphicsControlBlock controlBlock;
         EGifPutExtensionLeader(gif, APPLICATION_EXT_FUNC_CODE);
         EGifPutExtensionBlock(gif, 11, "NETSCAPE2.0");
         EGifPutExtensionBlock(gif, 3, param);
         EGifPutExtensionTrailer(gif);
 
-        GraphicsControlBlock controlBlock;
         GifByteType buf[4];
-
         controlBlock.TransparentColor = NO_TRANSPARENT_COLOR;
         controlBlock.DisposalMode = 1;
         controlBlock.UserInputFlag = false;
         controlBlock.DelayTime = 40;
 
-        EGifGCBToExtension(&controlBlock, buf);
-        ret = EGifPutExtension(gif, GRAPHICS_EXT_FUNC_CODE, 4, buf);
-        if (ret == GIF_ERROR) {
-            cerr << "EGifPutExtension failed: " << GifErrorString(gif->Error) << endl;
-            exit(1);
+        for (size_t i = 0; i < images.size(); i++) {
+            EGifGCBToExtension(&controlBlock, buf);
+
+            ret = EGifPutExtension(gif, GRAPHICS_EXT_FUNC_CODE, 4, buf);
+            if (ret == GIF_ERROR) {
+                cerr << "EGifPutExtension failed: " << GifErrorString(gif->Error) << endl;
+                exit(1);
+            }
+
+            ret = EGifPutImageDesc(gif, 0, 0, width, height, false, 0);
+            if (ret == GIF_ERROR) {
+                cerr << "EGifPutImageDesc failed: " << GifErrorString(gif->Error) << endl;
+                exit(1);
+            }
+
+            EGifPutLine(gif, output + i * width * height, width * height);
         }
-
-        ret = EGifPutImageDesc(gif, 0, 0, image.cols, image.rows, false, 0);
-        if (ret == GIF_ERROR) {
-            cerr << "EGifPutImageDesc failed: " << GifErrorString(gif->Error) << endl;
-            exit(1);
-        }
-
-        EGifPutLine(gif, output, image.rows * image.cols);
-
-        ret = EGifPutExtension(gif, GRAPHICS_EXT_FUNC_CODE, 4, buf);
-        if (ret == GIF_ERROR) {
-            cerr << "EGifPutExtension failed: " << GifErrorString(gif->Error) << endl;
-            exit(1);
-        }
-
-        ret = EGifPutImageDesc(gif, 0, 0, image.cols, image.rows, false, 0);
-        if (ret == GIF_ERROR) {
-            cerr << "EGifPutImageDesc failed: " << GifErrorString(gif->Error) << endl;
-            exit(1);
-        }
-
-        getColorMap(output, colorMap, image2);
-
-        EGifPutLine(gif, output, image.rows * image.cols);
 
         delete[] output;
 
         EGifCloseFile(gif);
     }
 private:
-    Mat image;
-    Mat image2;
+    vector<Mat> images;
+    int width;
+    int height;
 
-    void getColorMap(GifByteType* outputBuffer, ColorMapObject* colorMap, Mat& img)
+    void getColorMap(GifByteType* outputBuffer, ColorMapObject* colorMap)
     {
         int ret;
-        int size = img.rows * img.cols;
+        int size = width * height;
         int colorMapSize = 256;
-        GifByteType* b = new GifByteType[size];
-        GifByteType* g = new GifByteType[size];
-        GifByteType* r = new GifByteType[size];
+        GifByteType* b = new GifByteType[size * images.size()];
+        GifByteType* g = new GifByteType[size * images.size()];
+        GifByteType* r = new GifByteType[size * images.size()];
 
-        if (img.channels() != 3) {
-            cerr << "img channels are " << img.channels() << endl;
-            exit(1);
+        for (size_t i = 0; i < images.size(); i++) {
+            for (int j = 0; j < size; j++) {
+                b[i * size + j] = images[i].data[3 * j];
+                g[i * size + j] = images[i].data[3 * j + 1];
+                r[i * size + j] = images[i].data[3 * j + 2];
+            }
         }
 
-        for (int i = 0; i < size; i++) {
-            b[i] = img.data[3 * i];
-            g[i] = img.data[3 * i + 1];
-            r[i] = img.data[3 * i + 2];
-        }
-
-        ret = GifQuantizeBuffer(img.cols, img.rows, &colorMapSize, r, g, b, outputBuffer, colorMap->Colors);
+        ret = GifQuantizeBuffer(width, height * images.size(), &colorMapSize, r, g, b, outputBuffer, colorMap->Colors);
         if (ret == GIF_ERROR) {
             cerr << "GifQuantizeBuffer failed" << endl;
             exit(1);
@@ -137,7 +139,9 @@ private:
 
 int main(int argc, char* argv[])
 {
-    GifConverter gc("aaa_700.rnd.png");
+    GifConverter gc;
+    gc.addImage("aaa_700.rnd.png");
+    gc.addImage("aaa_705.rnd.png");
     gc.showImage();
     gc.writeGif("output.gif");
     return 0;
