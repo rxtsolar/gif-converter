@@ -28,6 +28,19 @@ void GifEncoder::addImage(const char* fileName)
     images.push_back(image);
 }
 
+void GifEncoder::addImage(const Mat& image)
+{
+    if (width == 0 && height == 0) {
+        width = image.cols;
+        height = image.rows;
+    }
+    if (width != image.cols || height != image.rows) {
+        cerr << "Images size are different" << endl;
+        exit(1);
+    }
+    images.push_back(image);
+}
+
 void GifEncoder::writeGif(const char* fileName) const
 {
     int ret;

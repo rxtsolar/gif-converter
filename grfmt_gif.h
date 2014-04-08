@@ -11,6 +11,7 @@ class GifEncoder {
 public:
     GifEncoder(void);
     void addImage(const char* fileName);
+    void addImage(const cv::Mat& image);
     void writeGif(const char* fileName) const;
     int getFps(void) const;
     void setFps(int fps);
