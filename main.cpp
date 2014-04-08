@@ -5,6 +5,7 @@ using namespace gs;
 int main(int argc, char* argv[])
 {
     GifEncoder gc;
+    gc.setFps(1);
     gc.addImage("aaa_700.rnd.png");
     gc.addImage("aaa_705.rnd.png");
     gc.writeGif("output.gif");

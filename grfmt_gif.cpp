@@ -11,6 +11,7 @@ GifEncoder::GifEncoder(void)
 {
     width = 0;
     height = 0;
+    fps = 25;
 }
 
 void GifEncoder::addImage(const char* fileName)
@@ -27,7 +28,7 @@ void GifEncoder::addImage(const char* fileName)
     images.push_back(image);
 }
 
-void GifEncoder::writeGif(const char* fileName)
+void GifEncoder::writeGif(const char* fileName) const
 {
     int ret;
     GifFileType* gif = EGifOpenFileName(fileName, false, 0);
@@ -69,7 +70,7 @@ void GifEncoder::writeGif(const char* fileName)
     controlBlock.TransparentColor = NO_TRANSPARENT_COLOR;
     controlBlock.DisposalMode = 1;
     controlBlock.UserInputFlag = false;
-    controlBlock.DelayTime = 40;
+    controlBlock.DelayTime = 100 / fps;
 
     for (size_t i = 0; i < images.size(); i++) {
         EGifGCBToExtension(&controlBlock, buf);
@@ -94,7 +95,7 @@ void GifEncoder::writeGif(const char* fileName)
     EGifCloseFile(gif);
 }
 
-void GifEncoder::getColorMap(GifByteType* outputBuffer, ColorMapObject* colorMap)
+void GifEncoder::getColorMap(GifByteType* outputBuffer, ColorMapObject* colorMap) const
 {
     int ret;
     int size = width * height;
@@ -120,6 +121,16 @@ void GifEncoder::getColorMap(GifByteType* outputBuffer, ColorMapObject* colorMap
     delete[] b;
     delete[] g;
     delete[] r;
+}
+
+int GifEncoder::getFps(void) const
+{
+    return fps;
+}
+
+void GifEncoder::setFps(int fps)
+{
+    this->fps = fps;
 }
 
 }

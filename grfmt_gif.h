@@ -11,13 +11,16 @@ class GifEncoder {
 public:
     GifEncoder(void);
     void addImage(const char* fileName);
-    void writeGif(const char* fileName);
+    void writeGif(const char* fileName) const;
+    int getFps(void) const;
+    void setFps(int fps);
 private:
     std::vector<cv::Mat> images;
     int width;
     int height;
+    int fps;
 
-    void getColorMap(GifByteType* outputBuffer, ColorMapObject* colorMap);
+    void getColorMap(GifByteType* outputBuffer, ColorMapObject* colorMap) const;
 };
 
 }
