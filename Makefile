@@ -1,2 +1,7 @@
+LIBS = -lopencv_core -lopencv_highgui -lopencv_imgproc -lgif
+CFLAGS = -g -Wall
+SRC = main.cpp grfmt_gif.cpp
+CC = g++
+
 all:
-	g++ main.cpp grfmt_gif.cpp -g -Wall -lopencv_core -lopencv_highgui -lgif
+	$(CC) $(SRC) $(CFLAGS) $(LIBS)
